@@ -1,0 +1,11 @@
+*
+!.gitignore
+!kdvxp.md
+!kdvxs
+!kdvxs/README.md
+!kdvxs/src
+!kdvxs/inc
+!kdvxs/lib
+!kdvxs/src/*
+!kdvxs/inc/*
+!kdvxs/lib/*
