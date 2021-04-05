@@ -3,9 +3,8 @@
 !kdvxp.md
 !kdvxs
 !kdvxs/README.md
+!kdvxs/build.sh
 !kdvxs/src
 !kdvxs/inc
 !kdvxs/lib
-!kdvxs/src/*
-!kdvxs/inc/*
-!kdvxs/lib/*
+!kdvxs/*/*
