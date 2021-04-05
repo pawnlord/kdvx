@@ -24,14 +24,29 @@ The following commands need to be implemented for this protocol for the client:
 ### server
 The following commands need to be implemented for the server:  
 ```
-:welcome:                       -- signal succesful login
 :ping <s>:                      -- await 'pong' command for <s> seconds
+:req-login:                     -- request a login from client
 :send <filename>:               -- response to 'take' command
 :dnes <filename>:               -- end response to 'take' command
 :contents <channel>:            -- start sending new contents of <channel>
 :stnetnoc <channel>:            -- signal end of new contents of <channel>
 :voice-allowed <voice-id>:      -- send id to link voice user and account
-:err <err-code>: <message>:     -- signal an error has occured
+:suc <suc-code>:                -- signal generic success
+:err <err-code>: <message>      -- signal an error has occured
+```
+
+### success codes
+```
+0: Connected            A connection was made, first thing sent
+
+1: RecievedMsg          Message was recieved
+
+2: RecievedData         File data was successfully recieved,
+                        continue sending it
+
+3: ClosedChannel        Closed a channel for the client
+
+4: ClosedVoice          Voice channel was closed
 ```
 
 ### err codes
@@ -49,6 +64,8 @@ The following commands need to be implemented for the server:
 
 4: VoiceOccupied        Your account is already in a voice
                         channel
+
+5: BadData              Failed to get data, rerequesting it
 ...
 ```
 
