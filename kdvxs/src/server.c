@@ -11,7 +11,9 @@ void handle(int failed, char* process){
 }
 
 int main_loop(int socket, char* buffer, int id);
+void print_command(char** out, int argc);
 void* main_loop_thread(void *vargp);
+int get_command(char* in, char*** out);
 
 int start_server(int port){
 	int server_fd, new_socket, valread;
@@ -69,25 +71,57 @@ void* main_loop_thread(void *vargp){
 int main_loop(int socket, char* buffer, int id){
 	int valread = read(socket, buffer, 1024);
 	buffer[valread] = 0;
-	printf("%s: %d\n", buffer, valread);
+	printf("%d . \"%s\"\n", id, buffer);
 	sprintf(text, "%s%d: %s\n", text, id, buffer);
-	printf("succsessful cat\n");
+
+	char** out;
+	int size = get_command(buffer, &out);
+	print_command(out, size);
+
 	int i;
 	for(i = 0; i < 1024; i++){
 		if(i > strlen(text)){
 			buffer[i] = 0;
 			break;
 		}
-		printf("%d\n", strlen(text)-1024);
 		buffer[i] = text[(int)fmax(0, (int)strlen(text)-1024)+i];
 	}
-	printf("buffer: %s\n", buffer);
+
 	buffer[i] = 0;
 	send(socket, buffer, strlen(buffer), 0);
 	return valread;
 }
 
-int get_command(char* in, char** out){
-	// STUB
+int get_command(char* in, char*** out){
+	int out_word = 0;
+	int out_char = 0;
+	(*out) = malloc(32);
+	(*out)[0] = malloc(255);
+	for(int i = 0; i < 255; i++){
+		(*out)[0][i] = 0;
+	}
+	for(int i = 0; in[i] != 0 && in[i] != 0; i++){
+		if(in[i] == ':'){
+			break;
+		} else if(in[i] == ' ') {
+			out_word++;
+			out_char = 0;
+			(*out)[out_word] = malloc(255);
+			for(int j = 0; j < 255; j++){
+				(*out)[out_word][j] = 0;
+			}
+		} else{
+			(*out)[out_word][out_char] = in[i];
+			out_char++;
+		}
+	}
+	return out_word+1;
 }
+
+void print_command(char** out, int argc){
+	for(int i = 0; i < argc; i++){
+		printf("%d -- %s\n", i, out[i]);
+	}
+}
+
 
