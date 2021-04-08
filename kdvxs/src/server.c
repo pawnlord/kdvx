@@ -1,5 +1,8 @@
 #include "server.h"
 #define LOG_SIZE 10000
+#define IGNORE 0
+#define ERR_RECIEVED -1
+#define SUCCESSFUL 1
 
 char* text;
 
@@ -10,10 +13,21 @@ void handle(int failed, char* process){
 	}
 }
 
+/* main loop function */
 int main_loop(int socket, char* buffer, int id);
+
+/* print out a command for debugging purposes*/
 void print_command(char** out, int argc);
+/* main loop starter that conforms with pthread_create */
 void* main_loop_thread(void *vargp);
+
+/* parse a recieved command */
 int get_command(char* in, char*** out);
+
+/* use command once found */
+int use_command(char** comm, int size, int sock, char** retmsgp);
+
+int check_success(int sock);
 
 int start_server(int port){
 	int server_fd, new_socket, valread;
@@ -66,9 +80,10 @@ void* main_loop_thread(void *vargp){
 	while(loop){
 		loop = main_loop(socket, buffer, this_id);
 	}
+	free(buffer);
 }
 
-int main_loop(int socket, char* buffer, int id){
+int main_loop(int socket, char* buffer, int id) {
 	int valread = read(socket, buffer, 1024);
 	buffer[valread] = 0;
 	printf("%d . \"%s\"\n", id, buffer);
@@ -77,19 +92,83 @@ int main_loop(int socket, char* buffer, int id){
 	char** out;
 	int size = get_command(buffer, &out);
 	print_command(out, size);
-
-	int i;
-	for(i = 0; i < 1024; i++){
-		if(i > strlen(text)){
-			buffer[i] = 0;
-			break;
+	char* errmsg;
+	if(use_command(out, size, socket, &errmsg) != ERR_RECIEVED){
+		int i;
+		for(i = 0; i < 1024; i++){
+			if(i > strlen(text)){
+				buffer[i] = 0;
+				break;
+			}
+			buffer[i] = text[(int)fmax(0, (int)strlen(text)-1024)+i];
 		}
-		buffer[i] = text[(int)fmax(0, (int)strlen(text)-1024)+i];
+
+		buffer[i] = 0;
+	} else {
+		strcpy(buffer, errmsg);
 	}
 
-	buffer[i] = 0;
+	/* cleanup */
+	for(int i = 0; i < size; i++) {
+		free(out[i]);
+	}
+	free(out);
+	free(errmsg);
+
+	/* final send, end loop */
 	send(socket, buffer, strlen(buffer), 0);
 	return valread;
+}
+
+int use_command(char** comm, int size, int sock, char** retmsgp) {
+	(*retmsgp) = malloc(1024);
+	char* retmsg = *retmsgp;
+	if(size < 1){
+		printf("No command, skipping..\n");
+		return IGNORE;
+	}
+	if(strcmp(comm[0], "take") == 0){
+		if(size < 2){
+			strcpy(retmsg, "err 6: Not Enough Arguments Provided");
+			return ERR_RECIEVED;
+		}
+		FILE* fp = fopen(comm[1], "r");
+		char* buff = malloc(1024);
+
+		fread(buff, 1, 1024, fp);
+		perror("");
+		send(sock, buff, strlen(buff), 0);
+
+		free(buff);
+		int success = check_success(sock);
+		if(success == ERR_RECIEVED){
+			strcpy(retmsg, "Oops, something went wrong. Our code monkeys are hard at work to fix it");
+		}
+		return success;
+	}
+	strcpy(retmsg, "err 7: Not a command");
+	return ERR_RECIEVED;
+
+}
+
+int check_success(int sock){
+	char* buff = malloc(1024);
+	char** out;
+	int valread = read(sock, buff, 1024);
+	int size = get_command(buff, &out);
+	free(buff);
+	if(size < 1 || strcmp(out[0], "succ")==0){
+		for(int i = 0; i < size; i++){
+			free(out[i]);
+		}
+		free(out);
+		return SUCCESSFUL;
+	}
+	for(int i = 0; i < size; i++){
+		free(out[i]);
+	}
+	free(out);
+	return ERR_RECIEVED;
 }
 
 int get_command(char* in, char*** out){
