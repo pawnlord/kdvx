@@ -34,6 +34,7 @@ void add_user(channel* c, int uid, char* name){
 	c->users[c->unum].name = malloc(strlen(name)+1);
 	strcpy(c->users[c->unum].name, name);
 	c->users[c->unum].uid = 0;
+	c->unum += 1;
 }
 
 void check_user(channel* c, int uid){
