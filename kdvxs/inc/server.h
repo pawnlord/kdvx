@@ -2,7 +2,7 @@
 #define SERVER_H
 
 #include <stdio.h>
-#include "text_server.h"
+#include "textmanager.h"
 #include "voice_server.h"
 #include <unistd.h>
 #include <sys/socket.h>
