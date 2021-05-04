@@ -27,7 +27,7 @@ void check_user(channel* c, int uid);
 
 int log_message(channel* c, int uid, char* msg);
 
-int read_new(channel* c, int uid);
+int read_new(channel* c, int uid, char** outp);
 
 #endif
 /*ifndef TEXT_MANAGER_H*/

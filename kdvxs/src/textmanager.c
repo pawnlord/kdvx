@@ -7,6 +7,9 @@ int checkfile(char* name);
 /* get a uchinfo structure for logging purposes */
 void getuser(uchinfo* dest, channel* from, int uid);
 
+/* directly change users pointer variable */
+void changeuserptr(channel* from, int uid, int pointer);
+
 int init_channel(channel* c, char* name, int create_new) {
 	/* build the name of the file we are opening from the channel name */
         c->name = malloc(strlen(name)+1+strlen(".log"));
@@ -24,6 +27,7 @@ int init_channel(channel* c, char* name, int create_new) {
 		}
 	}
 	c->fp = fopen(c->name, "r+");
+	fseek(c->fp, 0L, SEEK_END);
 
 	c->unum = 0;
 
@@ -35,7 +39,7 @@ void add_user(channel* c, int uid, char* name){
 	c->users[c->unum].uid = uid;
 	c->users[c->unum].name = malloc(strlen(name)+1);
 	strcpy(c->users[c->unum].name, name);
-	c->users[c->unum].uid = 0;
+	printf("%d\n", c->unum);
 	c->unum += 1;
 }
 
@@ -68,6 +72,29 @@ int log_message(channel* c, int uid, char* msg){
 	fputs(finalmsg, c->fp);
 }
 
+int read_new(channel* c, int uid, char** outp){
+	/* setup user */
+	uchinfo user;
+	getuser(&user, c, uid);
+
+	/* setup output */
+	fseek(c->fp, 0L, SEEK_END);
+	int sz = ftell(c->fp);
+	fseek(c->fp, user.pointer, SEEK_SET);
+
+	(*outp) = malloc(sz - user.pointer + 1);
+	char* out = *outp;
+
+	/* read the file from user.pointer into out*/
+	int end = fread(out, 1, sz-user.pointer+1, c->fp);
+
+	changeuserptr(c, uid, sz);
+
+	printf("%s\n", out);
+
+	return 1;
+}
+
 int checkfile(char* name){
 	return access(name, F_OK) == 0;
 }
@@ -76,6 +103,15 @@ void getuser(uchinfo* dest, channel* from, int uid){
 	for(int i = 0; i < from->unum; i++){
 		if(from->users[i].uid == uid){
 			*dest = from->users[i];
+			return;
+		}
+	}
+}
+
+void changeuserptr(channel* from, int uid, int pointer){
+	for(int i = 0; i < from->unum; i++){
+		if(from->users[i].uid == uid){
+			from->users[i].pointer = pointer;
 			return;
 		}
 	}

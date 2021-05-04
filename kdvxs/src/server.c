@@ -4,7 +4,7 @@
 #define ERR_RECIEVED -1
 #define SUCCESSFUL 1
 
-char* text;
+channel c;
 
 void handle(int failed, char* process){
 	if(failed){
@@ -57,6 +57,9 @@ int start_server(int port){
 	handle(bind(server_fd, (struct sockaddr *)&address, 
 	                         sizeof(address))<0, "bind");
 
+	/* initialize channel */
+	init_channel(&c, "general", 1);
+
 	handle(listen(server_fd, 30) < 0, "listen");
 	while(1){
 		handle((new_socket = accept(server_fd, (struct sockaddr *)&address, 
@@ -75,6 +78,7 @@ void* main_loop_thread(void *vargp){
 	int loop = 1;
 	int socket = *(int*)vargp;
 	char* buffer = malloc(1024);
+
 	for(int i = 0; i < 1024; i++){
 		buffer[i] = 0;
 	}
