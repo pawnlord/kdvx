@@ -5,7 +5,7 @@
 int checkfile(char* name);
 
 /* get a uchinfo structure for logging purposes */
-void getuser(uchinfo* dest, channel* from, int uid);
+int getuser(uchinfo* dest, channel* from, int uid);
 
 /* directly change users pointer variable */
 void changeuserptr(channel* from, int uid, int pointer);
@@ -55,7 +55,10 @@ void check_user(channel* c, int uid){
 int log_message(channel* c, int uid, char* msg){
 	char* finalmsg;
 	uchinfo user;
-	getuser(&user, c, uid);
+	if(!getuser(&user, c, uid)){
+		printf("No User Found for %d\n", uid);
+		return 0;
+	}
 
 	int fmsize = strlen(msg)+1;
 	fmsize+= strlen(user.name) + strlen(": \n");
@@ -68,14 +71,20 @@ int log_message(channel* c, int uid, char* msg){
 	strcat(finalmsg, ": ");
 	strcat(finalmsg, msg);
 	strcat(finalmsg, "\n");
+	printf("%s\n", finalmsg);
 
 	fputs(finalmsg, c->fp);
+
+	fflush(c->fp);
+	return 1;
 }
 
 int read_new(channel* c, int uid, char** outp){
 	/* setup user */
 	uchinfo user;
-	getuser(&user, c, uid);
+	if(!getuser(&user, c, uid)){
+		return 0;
+	}
 
 	/* setup output */
 	fseek(c->fp, 0L, SEEK_END);
@@ -99,13 +108,14 @@ int checkfile(char* name){
 	return access(name, F_OK) == 0;
 }
 
-void getuser(uchinfo* dest, channel* from, int uid){
+int getuser(uchinfo* dest, channel* from, int uid){
 	for(int i = 0; i < from->unum; i++){
 		if(from->users[i].uid == uid){
 			*dest = from->users[i];
-			return;
+			return 1;
 		}
 	}
+	return 0;
 }
 
 void changeuserptr(channel* from, int uid, int pointer){

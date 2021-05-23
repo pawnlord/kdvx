@@ -4,7 +4,8 @@
 #define ERR_RECIEVED -1
 #define SUCCESSFUL 1
 
-channel c;
+channel *available_channels;
+int chan_count = 0;
 
 void handle(int failed, char* process){
 	if(failed){
@@ -28,9 +29,12 @@ int get_command(char* in, char*** out);
 int get_simple_command(char* in, char** out);
 
 /* use command once found */
-int use_command(char** comm, int size, int sock, char** retmsgp);
+int use_command(char** comm, int size, int sock, char** retmsgp, int id);
 
 int check_success(int sock);
+
+/* get a channel from a specified name */
+channel* get_channel(char* name);
 
 int start_server(int port){
 	int server_fd, new_socket, valread;
@@ -38,10 +42,6 @@ int start_server(int port){
 	int opt = 1;
 	int addrlen = sizeof(address);
 	char buffer[1024] = {0};
-	text = malloc(LOG_SIZE);
-	for(int i = 0; i < LOG_SIZE; i++){
-		text[i] = 0;
-	}
 	// Creating socket file descriptor
 	handle((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == 0, "socket");
 
@@ -56,9 +56,11 @@ int start_server(int port){
 	// Forcefully attaching socket to the port 8080
 	handle(bind(server_fd, (struct sockaddr *)&address, 
 	                         sizeof(address))<0, "bind");
+	available_channels = (channel*)malloc(50*sizeof(channel));
 
 	/* initialize channel */
-	init_channel(&c, "general", 1);
+	init_channel(available_channels, "general", 1);
+	chan_count = 1; // TODO: automatically assign channels, with NULL as the last value
 
 	handle(listen(server_fd, 30) < 0, "listen");
 	while(1){
@@ -78,6 +80,11 @@ void* main_loop_thread(void *vargp){
 	int loop = 1;
 	int socket = *(int*)vargp;
 	char* buffer = malloc(1024);
+	char* name = malloc(255);
+	sprintf(name, "USER%d", this_id);
+
+	/* add user to general */
+	add_user(available_channels, this_id, name);
 
 	for(int i = 0; i < 1024; i++){
 		buffer[i] = 0;
@@ -87,29 +94,21 @@ void* main_loop_thread(void *vargp){
 		loop = main_loop(socket, buffer, this_id);
 	}
 	free(buffer);
+	free(name);
 }
 
 int main_loop(int socket, char* buffer, int id) {
 	int valread = read(socket, buffer, 1024);
 	buffer[valread] = 0;
 	printf("%d . \"%s\"\n", id, buffer);
-	sprintf(text, "%s%d: %s\n", text, id, buffer);
 
 	char** out;
 	int size = get_command(buffer, &out);
 	print_command(out, size);
+	perror("");
 	char* errmsg;
-	if(use_command(out, size, socket, &errmsg) != ERR_RECIEVED){
-		int i;
-		for(i = 0; i < 1024; i++){
-			if(i > strlen(text)){
-				buffer[i] = 0;
-				break;
-			}
-			buffer[i] = text[(int)fmax(0, (int)strlen(text)-1024)+i];
-		}
-
-		buffer[i] = 0;
+	if(use_command(out, size, socket, &errmsg, id) != ERR_RECIEVED){
+		strcpy(buffer, "succ 1:");
 	} else {
 		strcpy(buffer, errmsg);
 	}
@@ -126,14 +125,31 @@ int main_loop(int socket, char* buffer, int id) {
 	return valread;
 }
 
-int use_command(char** comm, int size, int sock, char** retmsgp) {
+int use_command(char** comm, int size, int sock, char** retmsgp, int id) {
 	(*retmsgp) = malloc(1024);
 	char* retmsg = *retmsgp;
 	if(size < 1){
 		printf("No command, skipping..\n");
 		return IGNORE;
 	}
-	if(strcmp(comm[0], "take") == 0){
+	if(strcmp(comm[0], "msg") == 0){
+		if(size < 2){
+			strcpy(retmsg, "err 6: Not Enough Arguments Provided");
+			return ERR_RECIEVED;
+		}
+		char* channame = comm[1];
+		channel* msg_chan = get_channel(channame);
+
+		if(msg_chan == NULL){
+			strcpy(retmsg, "err 3: Channel does not exist");
+			return ERR_RECIEVED;
+		}
+		printf("dsadsa: %d\n", msg_chan->fp);
+		printf("asdasd: %s\n", comm[size]);
+		log_message(msg_chan, id, comm[size]);
+		return SUCCESSFUL;
+	}
+	else if(strcmp(comm[0], "take") == 0){
 		if(size < 2){
 			strcpy(retmsg, "err 6: Not Enough Arguments Provided");
 			return ERR_RECIEVED;
@@ -236,6 +252,12 @@ int get_command(char* in, char*** out){
 	}
 	for(int i = 0; in[i] != 0 && in[i] != 0; i++){
 		if(in[i] == ':'){
+			out_word+=1;
+			(*out)[out_word] = malloc(1024);
+ 			for(int j = 0; j < 255; j++){
+				(*out)[out_word][j] = 0;
+			}
+			strcpy((*out)[out_word], in+i+1);
 			break;
 		} else if(in[i] == ' ') {
 			out_word++;
@@ -249,7 +271,8 @@ int get_command(char* in, char*** out){
 			out_char++;
 		}
 	}
-	return out_word+1;
+	perror("");
+	return out_word;
 }
 
 int get_simple_command(char* in, char** out){
@@ -276,4 +299,13 @@ void print_command(char** out, int argc){
 	}
 }
 
-
+channel* get_channel(char* name){
+	strcat(name, ".log");
+	for(int i = 0; i < chan_count; i++){
+		printf("%d\n", available_channels[i].fp);
+		if(strcmp(available_channels[i].name, name) == 0){
+			return available_channels+i;
+		}
+	}
+	return NULL;
+}
