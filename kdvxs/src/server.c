@@ -149,6 +149,23 @@ int use_command(char** comm, int size, int sock, char** retmsgp, int id) {
 		log_message(msg_chan, id, comm[size]);
 		return SUCCESSFUL;
 	}
+	else if(strcmp(comm[0], "read") == 0){
+		if(size < 2){
+			strcpy(retmsg, "err 6: Not Enough Arguments Provided");
+			return ERR_RECIEVED;
+		}
+		char* channame = comm[1];
+		channel* msg_chan = get_channel(channame);
+
+		if(msg_chan == NULL){
+			strcpy(retmsg, "err 3: Channel does not exist");
+			return ERR_RECIEVED;
+		}
+		char* contents = NULL;
+		read_new(msg_chan, id, &contents);
+		send(sock, contents, strlen(contents), 0);
+		return SUCCESSFUL;
+	}
 	else if(strcmp(comm[0], "take") == 0){
 		if(size < 2){
 			strcpy(retmsg, "err 6: Not Enough Arguments Provided");
