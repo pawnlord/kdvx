@@ -8,3 +8,11 @@
 !kdvxs/inc
 !kdvxs/lib
 !kdvxs/*/*
+!kdvxc
+!kdvxc/plan.md
+!kdvxc/build.sh
+!kdvxc/src
+!kdvxc/inc
+!kdvxc/lib
+!kdvxc/*/*
+

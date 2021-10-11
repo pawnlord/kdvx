@@ -3,7 +3,6 @@
 
 #include <stdio.h>
 #include "textmanager.h"
-#include "voice_server.h"
 #include <unistd.h>
 #include <sys/socket.h>
 #include <stdlib.h>
