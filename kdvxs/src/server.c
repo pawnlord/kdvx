@@ -98,7 +98,11 @@ void* main_loop_thread(void *vargp){
 }
 
 int main_loop(int socket, char* buffer, int id) {
-	int valread = read(socket, buffer, 1024);
+	int valread = read(socket, buffer, 11024);
+	if(valread == -1){
+		perror("kdvxs");
+		return 0;
+	}
 	buffer[valread] = 0;
 	printf("%d . \"%s\"\n", id, buffer);
 
