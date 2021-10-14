@@ -38,7 +38,16 @@ int kdvx_read(int sock, char *channel, char **buffer){
 	send(sock, msg, strlen(msg), 0);
 	int valread = read(sock, *buffer, 2048);
 	(*buffer)[valread] = 0;
-	printf("read\n");
-	printf("%s\n", *buffer);
-	printf("done\n");
+}
+
+int kdvx_msg(int sock, char *channel, char *msg){
+	int size = 8 + strlen(channel) + strlen(msg); // constant_characters + channel length + message length
+	char *final_msg = malloc(size);
+	char* buffer = malloc(2048);
+	sprintf(final_msg, "msg %s:%s", channel, msg);
+	send(sock, final_msg, strlen(final_msg), 0);
+	int valread = read(sock, buffer, 2048);
+	int succ = strcmp(buffer, "succ 1:")==0;
+	free(buffer);
+	return succ;
 }
