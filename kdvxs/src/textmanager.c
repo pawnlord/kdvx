@@ -60,6 +60,15 @@ int log_message(channel* c, int uid, char* msg){
 		return 0;
 	}
 
+	/* remove bad characters from message */
+	int j = 0;
+	for(int i = 0; msg[i] != 0; i++){
+		if(msg[i] >= 32 && msg[i] <= 126){
+			msg[j] = msg[i];
+			j++;
+		}
+	}
+	msg[j] = 0;
 	int fmsize = strlen(msg)+1;
 	fmsize+= strlen(user.name) + strlen(": \n");
 	finalmsg = malloc(fmsize);

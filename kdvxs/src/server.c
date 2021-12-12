@@ -112,8 +112,8 @@ int main_loop(int socket, char* buffer, int id) {
 	perror("");
 	char* errmsg;
 	if(use_command(out, size, socket, &errmsg, id) != ERR_RECIEVED){
-		strcpy(buffer, "succ 1:");
-	} else {
+		strcpy(buffer, "succ 1:\0");
+	} else{
 		strcpy(buffer, errmsg);
 	}
 
